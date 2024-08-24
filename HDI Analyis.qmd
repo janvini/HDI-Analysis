@@ -1,0 +1,303 @@
+---
+title: "Human Development Indicators Analysis"
+format:
+  revealjs:
+    theme: serif
+    slideNumber: true
+    css: custom.css
+---
+
+## Title
+
+Human Development Indicators Analysis
+
+A Comparative Study of Singapore and Switzerland
+
+Using data.table in
+
+Presented by: Jane Sanjeevini
+
+## Introduction
+
+In this presentation, we will:
+
+-   Introduce the Human Development Indicators (HDI) dataset.
+
+-   Perform data cleaning and merging using data.table.
+
+-   Explore and analyze the HDI data for Singapore and Switzerland.
+
+-   Visualize key findings using R.
+
+## Data Description
+
+The HDI dataset includes:
+
+-   `country_code`: ISO country code
+
+-   `country_name`: Country name
+
+-   `indicator_id`: Indicator ID
+
+-   `indicator_name`: Indicator name
+
+-   `index_id`: Index ID
+
+-   `index_name`: Index name
+
+-   `value`: Indicator value
+
+-   `year`: Year of observation
+
+## Data Preparation
+
+-   Data loading and preparation using data.table
+
+-   Reading CSV files for Singapore and Switzerland
+
+-   Assigning correct data types to variables
+
+## Loading The Data
+
+**singapore \<- fread("hdro_indicators_sgp.csv")**
+
+**switzerland \<- fread("hdro_indicators_che.csv")**
+
+```{r}
+library(data.table)
+
+# Load the Singapore and Switzerland data
+singapore <- fread("hdro_indicators_sgp.csv")
+switzerland <- fread("hdro_indicators_che.csv")
+
+# Display the structure and first few rows of the datasets
+str(singapore)
+str(switzerland)
+
+head(singapore)
+head(switzerland)
+
+```
+
+## Removing Missing Values 
+
+**singapore \<- singapore\[!is.na(as.numeric(value)), \]**
+
+**switzerland \<- switzerland\[!is.na(as.numeric(value)), \]**
+
+**singapore\[, `:=` (value = as.numeric(value), year = as.integer(year))\]**
+
+**switzerland\[, `:=` (value = as.numeric(value), year = as.integer(year))\]**
+
+**singapore \<- na.omit(singapore)switzerland \<- na.omit(switzerland)**
+
+## Appropriation of Data
+
+Convert columns to appropriate data types and handle missing values.
+
+```{r}
+# Identify non-numeric values in the 'value' column for Singapore
+non_numeric_singapore <- singapore[!is.na(as.numeric(value)) == FALSE]
+
+# Identify non-numeric values in the 'value' column for Switzerland
+non_numeric_switzerland <- switzerland[!is.na(as.numeric(value)) == FALSE]
+
+# Display the problematic values
+print(non_numeric_singapore)
+print(non_numeric_switzerland)
+
+# Remove non-numeric values from Singapore dataset
+singapore <- singapore[!is.na(as.numeric(value)), ]
+
+# Remove non-numeric values from Switzerland dataset
+switzerland <- switzerland[!is.na(as.numeric(value)), ]
+
+# Convert columns to appropriate data types after cleaning
+singapore[, `:=` (value = as.numeric(value), year = as.integer(year))]
+switzerland[, `:=` (value = as.numeric(value), year = as.integer(year))]
+
+# Handle missing values
+singapore <- na.omit(singapore)
+switzerland <- na.omit(switzerland)
+
+```
+
+## Merging the Datasets
+
+-   **Merging Datasets**: Combined datasets from Singapore and Switzerland using `rbindlist`, creating a unified dataset for comparative analysis of human development indicators.
+
+-   **Ensuring Data Consistency**: Added a 'country' column to distinguish between Singapore and Switzerland data post-merge, facilitating clear identification and analysis of country-specific trends.
+
+    **combined_data \<- rbindlist(list(singapore, switzerland))**
+
+```{r}
+# Add a country column
+singapore[, country := "Singapore"]
+switzerland[, country := "Switzerland"]
+
+# Merge the datasets
+combined_data <- rbindlist(list(singapore, switzerland))
+
+```
+
+## Data Cleaning
+
+-   **Handling Missing Data**: Identified and removed non-numeric values in critical columns like 'value', ensuring dataset integrity and accuracy for analysis.
+
+-   **Standardizing Data Types**: Converted variables to appropriate data types (numeric for 'value', integer for 'year'), ensuring consistency and compatibility across datasets from different sources.
+
+```{r}
+# Remove negative and excessively high values from 'value' column
+combined_data <- combined_data[value >= 0 & value <= 1000]   
+
+# Check for remaining non-numeric values in 'value' column
+non_numeric_values <- combined_data[is.na(as.numeric(value))]
+print(non_numeric_values)  
+
+# Convert 'value' to numeric after cleaning
+combined_data[, value := as.numeric(value)]
+
+```
+
+## Summary
+
+**unique_indicators \<- unique(combined_data\$indicator_name)**
+
+**unique_years \<- unique(combined_data\$year)**
+
+```{r}
+# Summary of cleaned data
+summary(combined_data)
+
+# Check unique indicators and years again
+unique_indicators <- unique(combined_data$indicator_name)
+unique_years <- unique(combined_data$year)
+
+print(unique_indicators)
+print(unique_years)
+
+```
+
+## Data Exploration
+
+-   The dataset comprises 1588 observations of human development indicators across countries from 1990 to 2022.
+
+-   Numeric values for indicators range widely (0.752 to 97.614), offering insights into diverse metrics over time.
+
+-   Key focus areas include life expectancy, education attainment, inequality measures, environmental impact, and gender equality, enabling comprehensive global trend analysis.
+
+## Key Indicators Over Time
+
+Analyzing and plotting the key indicators over time for both countries.
+
+**life_expectancy \<- combined_data\[indicator_name == "Life Expectancy at Birth (years)", .(mean_value = mean(value)), keyby = .(country, year)\]**
+
+```{r}
+library(data.table)
+library(ggplot2)
+
+# Filter data for Life Expectancy at Birth
+life_expectancy <- combined_data[indicator_name == "Life Expectancy at Birth (years)",
+                                 .(mean_value = mean(value)),
+                                 keyby = .(country, year)]
+
+# Define custom colors for Life Expectancy at Birth plot
+custom_colors <- c("Singapore" = "plum",
+                   "Switzerland" = "darkviolet")
+
+# Plot: Life Expectancy at Birth Over Time
+plot_life_expectancy <- ggplot(life_expectancy, aes(x = year, y = mean_value, color = country)) +
+  geom_line() +
+  scale_color_manual(values = custom_colors) +
+  labs(title = "Life Expectancy at Birth Over Time", x = "Year", y = "Life Expectancy (years)") +
+  theme_minimal()
+
+# Display the plot
+plot_life_expectancy
+```
+
+## Education Index Analysis
+
+Analyzing and plotting the education index for Singapore and Switzerland.
+
+**mean_schooling \<- combined_data\[indicator_name == "Mean Years of Schooling (years)", .(mean_value = mean(value)), keyby = .(country, year)\]**
+
+```{r}
+# Filter data for Mean Years of Schooling
+mean_schooling <- combined_data[indicator_name == "Mean Years of Schooling (years)",
+                                .(mean_value = mean(value)),
+                                keyby = .(country, year)]
+
+# Define custom colors for Mean Years of Schooling plot
+custom_colors <- c("Singapore" = "violet",
+                   "Switzerland" = "salmon")
+
+# Plot: Mean Years of Schooling Over Time
+plot_mean_schooling <- ggplot(mean_schooling, aes(x = year, y = mean_value, color = country)) +
+  geom_line() +
+  scale_color_manual(values = custom_colors) +
+  labs(title = "Mean Years of Schooling Over Time", x = "Year", y = "Mean Years of Schooling") +
+  theme_minimal()
+
+# Display the plot
+plot_mean_schooling
+
+```
+
+## Carbon Dioxide Emissions 
+
+Analyzing and plotting the emission of carbon dioxide for the two countries.
+
+**co2_emissions \<- combined_data\[indicator_name == "Carbon dioxide emissions per capita (production) (tonnes)", .(mean_value = mean(value)), keyby = .(country, year)\]**
+
+```{r}
+# Filter data for CO2 emissions per capita
+co2_emissions <- combined_data[indicator_name == "Carbon dioxide emissions per capita (production) (tonnes)",
+                               .(mean_value = mean(value)),
+                               keyby = .(country, year)]
+
+# Define custom colors for Singapore and Switzerland
+custom_colors <- c("Singapore" = "purple",  
+                   "Switzerland" = "pink")
+
+# Plot: CO2 Emissions per Capita Over Time
+plot_co2_emissions <- ggplot(co2_emissions, aes(x = year, y = mean_value, color = country)) +
+  geom_line() +
+  scale_color_manual(values = custom_colors) +
+  labs(title = "CO2 Emissions per Capita Over Time", x = "Year", y = "CO2 Emissions (tonnes)") +
+  theme_minimal()
+
+# Display the plot
+plot_co2_emissions
+
+```
+
+## Interpretation
+
+-   Life expectancy has generally increased over the years, though the rate of increase has slowed in recent times.
+
+-   The average number of years of schooling has been rising steadily, indicating improvements in education levels over time.
+
+-   CO2 emissions per capita have shown an upward trend, indicating increasing environmental impact per person over the years.
+
+## Conclusion
+
+-   **Life Expectancy**: Improved due to healthcare and living conditions in countries like the US, Singapore, and Switzerland, indicating significant public health advancements.
+
+-   **Educational Attainment**: Mean Years of Schooling have increased steadily, supporting personal and economic growth, with ongoing data clarity challenges.
+
+-   **Environmental Impact**: Rising CO2 Emissions per Capita underscore sustainability challenges despite human development gains, necessitating stronger environmental policies in nations like Singapore and Switzerland.
+
+## Q&A
+
+1.  How has life expectancy at birth changed over time across different countries?
+2.  What is the relationship between education attainment (mean years of schooling) and socio-economic factors like income inequality and labor force participation rates?
+3.  How have carbon dioxide emissions per capita evolved over the past decades, and how do they correlate with indicators of human development and environmental sustainability?
+
+## References
+
+The references or resources used in the presentation are:
+
+Singapore Dataset: "<https://data.humdata.org/dataset/hdro-data-for-singapore>"
+
+Switzerland Dataset: "<https://data.humdata.org/dataset/hdro-data-for-switzerland>"

@@ -1,0 +1,85 @@
+#' Read Human Development Index Data
+#' This function reads a CSV file containing Human Development Index data for a specified country.
+#' The data is cleaned and formatted with appropriate data types.
+#' @param filename The file path of the HDI data CSV.
+#' @return A data frame of class 'hdi_data'.
+#' @export
+#' @examples
+#' hdi_data <- readHDI("hdro_indicators_sgp.csv")
+readHDI <- function(filename) {
+  # Read the CSV file, ensure strings are not converted to factors automatically
+  hdi_data <- read.csv(file = filename, stringsAsFactors = FALSE)
+
+  # Handle NA values in key columns before conversion to factors
+  if (any(is.na(hdi_data$country_code))) {
+    # Option 1: Remove rows where country_code is NA
+    # hdi_data <- hdi_data[!is.na(hdi_data$country_code), ]
+
+    # Option 2: Replace NA with a placeholder value (uncomment to use)
+    hdi_data$country_code[is.na(hdi_data$country_code)] <- "Unknown"
+  }
+
+  # Convert columns to the desired type with error handling
+  hdi_data$country_code <- factor(hdi_data$country_code)
+  hdi_data$country_name <- factor(hdi_data$country_name)
+  hdi_data$indicator_id <- factor(hdi_data$indicator_id)
+  hdi_data$indicator_name <- factor(hdi_data$indicator_name)
+  hdi_data$index_id <- factor(hdi_data$index_id)
+  hdi_data$index_name <- factor(hdi_data$index_name)
+
+  # Preprocess 'value' column to handle non-numeric values
+  hdi_data$value[hdi_data$value %in% c("NA", "n/a", "undefined", "")] <- NA
+  hdi_data$value <- suppressWarnings(as.numeric(hdi_data$value))
+  if (any(is.na(hdi_data$value))) {
+    warning("NAs introduced by coercion in 'value' column. Please check your data for non-numeric values.")
+    print("Rows with non-numeric 'value' entries:")
+    print(hdi_data[is.na(hdi_data$value), ])
+  }
+
+  # Preprocess 'year' column to handle non-integer values
+  hdi_data$year[hdi_data$year %in% c("NA", "n/a", "undefined", "")] <- NA
+  hdi_data$year <- suppressWarnings(as.integer(hdi_data$year))
+  if (any(is.na(hdi_data$year))) {
+    warning("NAs introduced by coercion in 'year' column. Please check your data for non-integer values.")
+    print("Rows with non-integer 'year' entries:")
+    print(hdi_data[is.na(hdi_data$year), ])
+  }
+
+  # Set the class for custom methods
+  class(hdi_data) <- c("hdi_data", class(hdi_data))
+  return(hdi_data)
+}
+
+#' Print method for hdi_data class
+#'
+#' @param x The hdi_data object
+#' @param ... Further arguments passed to or from other methods
+#' @export
+print.hdi_data <- function(x, ...) {
+  cat("Human Development Index Data for", x$country_name[1], "\n")
+  cat("Years Available:", range(x$year), "\n")
+  print(summary(x), ...)
+}
+
+#' Summary method for hdi_data class
+#'
+#' @param object The hdi_data object
+#' @return A summary of the HDI data
+#' @export
+summary.hdi_data <- function(object) {
+  summary_stats <- summary(object$value)  # Focus summary on the 'value' column
+  return(list(summary = summary_stats))
+}
+
+#' Plot method for hdi_data class
+#'
+#' @param data The hdi_data object
+#' @param ... Further arguments passed to or from other methods
+#' @export
+plot.hdi_data <- function(data, ...) {
+  library(ggplot2)
+  ggplot(data, aes(x = year, y = value, color = indicator_name)) +
+    geom_line() +
+    labs(x = "Year", y = "Value") +
+    theme_minimal()
+}

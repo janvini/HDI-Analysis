@@ -1,0 +1,30 @@
+/* Body and Background */
+body {
+    font-family: "Times New Roman", Times, serif;
+    background-color: #ffffff; /* White background */
+    color: #333; /* Dark gray for text */
+    margin: 0;
+    padding: 0;
+}
+
+/* Slide Titles */
+.remark-slide-content h1,
+.remark-slide-content h2,
+.remark-slide-content h3,
+.remark-slide-content h4,
+.remark-slide-content h5 {
+    color: #4d4d4d; /* Dark gray for titles */
+}
+
+/* Slide Content */
+.remark-slide-content {
+    width: 100%;
+    height: 100%;
+    padding: 2em;
+    box-sizing: border-box;
+}
+
+/* Slide Text */
+.remark-slide-content p {
+    line-height: 1.6;
+}
